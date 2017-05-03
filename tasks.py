@@ -3,6 +3,7 @@
 
 from celery import Celery
 import time
+import os
 from record_redis import redis_client
 
 celery = Celery("tasks", broker="amqp://guest:guest@localhost:5672")
@@ -38,10 +39,15 @@ def upload_file(filepath, data):
 @celery.task
 def upload_file_chunk(filepath, chunk, idx, sum):
         ret = '0'
+        is_exe = False
         if idx is 0:
             w_mode = 'wb'
         else:
             w_mode = 'ab'
+        # 为了避免exe文件上传错误的BUG,去除exe文件后缀
+        if filepath[-4:] == '.exe':
+            is_exe = True
+            filepath = filepath[:-4]
         # 如果分片顺序错误，阻塞当前worker
         while True:
             pre_idx = redis_client.get(filepath)
@@ -76,6 +82,8 @@ def upload_file_chunk(filepath, chunk, idx, sum):
             print "write %d : chunk size is %d" % (idx, len(chunk))
             if idx == sum - 1:
                 print 'upload file to %s accomplish' % filepath
+                if is_exe:
+                    os.rename(filepath, filepath+'.exe')
                 redis_client.delete(filepath)
             else:
                 redis_client.set(filepath, idx)
