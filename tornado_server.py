@@ -54,11 +54,11 @@ class UploadFileHandler(tornado.web.RequestHandler):
                 response = yield tornado.gen.Task(tasks.upload_file_chunk.apply_async, args=[filepath, data, chunk_idx, chunks_sum])
             ret = response.result
         if ret == '0':
-            self.finish('{"jsonrpc" : "2.0", "result" : completed, "id" : "id"}')
+            self.finish('{"jsonrpc" : "2.0", "result" : {"code": 200, "message": "complete upload."}}')
         elif ret == '102':
-            self.finish('{"jsonrpc" : "2.0", "error" : {"code": 102, "message": "Failed to open output stream."}, "id" : "id"}')
+            self.finish('{"jsonrpc" : "2.0", "result" : {"code": 102, "message": "Failed to open output stream."}}')
         elif ret == '105':
-            self.finish('{"jsonrpc" : "2.0", "error" : {"code": 105, "message": "error occur when writing."}, "id" : "id"}')
+            self.finish('{"jsonrpc" : "2.0", "result" : {"code": 105, "message": "error occur when writing."}}')
 
 class Application(tornado.web.Application):
     def __init__(self):

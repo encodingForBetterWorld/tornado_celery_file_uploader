@@ -83,7 +83,10 @@ def upload_file_chunk(filepath, chunk, idx, sum):
             if idx == sum - 1:
                 print 'upload file to %s accomplish' % filepath
                 if is_exe:
-                    os.rename(filepath, filepath+'.exe')
+                    exe_name = filepath+'.exe'
+                    if os.path.exists(exe_name):
+                        os.remove(exe_name)
+                    os.rename(filepath, exe_name)
                 redis_client.delete(filepath)
             else:
                 redis_client.set(filepath, idx)
