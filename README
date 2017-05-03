@@ -1,0 +1,5 @@
+run tornado_server with command:
+python tornado_server.py
+
+run celery with command:
+python tasks.py -A tasks worker --loglevel=info
