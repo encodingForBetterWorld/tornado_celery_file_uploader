@@ -173,7 +173,6 @@
 	
 	//实例化Web Uploader
 	function getUploader( opt ) {
-
 		return new WebUploader.Uploader( opt );
 	}
 	
@@ -238,6 +237,7 @@
 			var uploadStart = function (){
 				webUploader.upload();
 				$startButton.text('暂停上传').one('click',function(){
+						console.log('pause upload');
 						webUploader.stop();
 						$(this).text('继续上传').one('click',function(){
 								uploadStart();

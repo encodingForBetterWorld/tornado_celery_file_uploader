@@ -16,9 +16,9 @@
 #demo{ margin:50px auto; width:540px; min-height:800px; background:#CF9}
 </style>
 <body>
-<div id="box">
+<!-- <div id="box">
 	<div id="test" ></div>
-</div>
+</div> -->
 
 <div id="demo">
 	<div id="as" ></div>
@@ -34,15 +34,15 @@ var server_cb = function(data){
 	console.log(data.result.code);
 }
 
-$('#test').diyUpload({
-	url:'http://localhost:8000/file_upload',
-	success:function( data ) {
-		console.info( data );
-	},
-	error:function( err ) {
-		console.info( err );
-	}
-},	server_cb);
+// $('#test').diyUpload({
+// 	url:'http://localhost:8000/file_upload',
+// 	success:function( data ) {
+// 		console.info( data );
+// 	},
+// 	error:function( err ) {
+// 		console.info( err );
+// 	}
+// },	server_cb);
 
 $('#as').diyUpload({
 	url:'http://localhost:8000/file_upload',
@@ -63,7 +63,4 @@ $('#as').diyUpload({
 	accept: {}
 },	server_cb);
 </script>
-<div style="text-align:center;margin:50px 0; font:normal 14px/24px 'MicroSoft YaHei';">
-<p>适用浏览器：IE8、360、FireFox、Chrome、Safari、Opera、傲游、搜狗、世界之窗. </p>
-</div>
 </html>

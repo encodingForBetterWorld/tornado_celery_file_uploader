@@ -10,8 +10,6 @@ celery = Celery("tasks", broker="amqp://guest:guest@localhost:5672")
 celery.conf.CELERY_RESULT_BACKEND = "amqp"
 celery.conf.CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml']
 
-# 存入redis中
-
 @celery.task
 def sleep(seconds):
     time.sleep(float(seconds))
@@ -54,7 +52,7 @@ def upload_file_chunk(filepath, chunk, idx, sum):
             # 顺序正确时解除阻塞
             if pre_idx is None:
                 if idx == 0:
-                 break
+                    break
             elif pre_idx == 'error':
                 ret = '105'
                 if idx == sum - 1:
@@ -64,7 +62,6 @@ def upload_file_chunk(filepath, chunk, idx, sum):
             else:
                 if int(pre_idx) == idx - 1:
                     break
-            time.sleep(.1)
         try:
             with open(filepath, w_mode) as up:
                 try:

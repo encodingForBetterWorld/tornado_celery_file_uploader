@@ -43,7 +43,11 @@ class UploadFileHandler(tornado.web.RequestHandler):
         if chunks is not None:
             chunks_sum = int(chunks[0])
         upload_path = os.path.join(os.path.dirname(__file__), 'files')  # 文件的暂存路径
-        ret = 0
+
+        if not os.path.exists(upload_path):
+            os.mkdir(upload_path)
+
+        ret = '-1'
         for meta in file_metas:
             filename = meta['filename']
             data = meta['body']
@@ -59,6 +63,8 @@ class UploadFileHandler(tornado.web.RequestHandler):
             self.finish('{"jsonrpc" : "2.0", "result" : {"code": 102, "message": "Failed to open output stream."}}')
         elif ret == '105':
             self.finish('{"jsonrpc" : "2.0", "result" : {"code": 105, "message": "error occur when writing."}}')
+        elif ret == '-1':
+            self.finish('{"jsonrpc" : "2.0", "result" : {"code": -1, "message": "stop writer this file."}}')
 
 class Application(tornado.web.Application):
     def __init__(self):
