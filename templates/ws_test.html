@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<button id="ws">测试</button>
+<script src="{{ static_url('scripts/jquery.js') }}"></script>
+<script>
+$(document).ready(function() {
+    var host = 'ws://localhost:8000/ws_sleep';
+    var websocket = new WebSocket(host);
+    websocket.onmessage = function(evt) {
+        console.log(evt);
+    }
+    $('#ws').on('click',function(){
+        websocket.send('msg')
+    })
+});
+</script>
+</body>
+</html>

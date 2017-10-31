@@ -9,7 +9,7 @@ import tornado.web
 import tornado.gen
 import tornado.httpclient
 import tcelery, tasks
-import os
+import tornado.websocket
 from tornado.options import define, options
 
 define("port", default=8000, help="run on the given port", type=int)
@@ -24,6 +24,16 @@ class SleepHandler(tornado.web.RequestHandler):
         self.write("when i sleep %d s" % response.result)
         self.finish()
 
+class SleepWebSocketHandler(tornado.websocket.WebSocketHandler):
+    @tornado.gen.coroutine
+    def on_message(self, message):
+        response = yield tornado.gen.Task(tasks.sleep.apply_async, args=[5])
+        self.write_message("when i sleep %d s" % response.result)
+        self.close()
+
+class SleepIndexHandler(tornado.web.RequestHandler):
+    def get(self):
+        return self.render('ws_test.html')
 
 class UploadFileHandler(tornado.web.RequestHandler):
     def get(self):
@@ -42,20 +52,15 @@ class UploadFileHandler(tornado.web.RequestHandler):
         chunks = req.arguments.get('chunks')
         if chunks is not None:
             chunks_sum = int(chunks[0])
-        upload_path = os.path.join(os.path.dirname(__file__), 'files')  # 文件的暂存路径
-
-        if not os.path.exists(upload_path):
-            os.mkdir(upload_path)
 
         ret = '-1'
         for meta in file_metas:
             filename = meta['filename']
             data = meta['body']
-            filepath = os.path.join(upload_path, filename)
             if chunk_idx is None and chunks_sum is None:
-                response = yield tornado.gen.Task(tasks.upload_file.apply_async, args=[filepath, data])
+                response = yield tornado.gen.Task(tasks.upload_file.apply_async, args=[filename, data])
             else:
-                response = yield tornado.gen.Task(tasks.upload_file_chunk.apply_async, args=[filepath, data, chunk_idx, chunks_sum])
+                response = yield tornado.gen.Task(tasks.upload_file_chunk.apply_async, args=[filename, data, chunk_idx, chunks_sum])
             ret = response.result
         if ret == '0':
             self.finish('{"jsonrpc" : "2.0", "result" : {"code": 200, "message": "complete upload."}}')
@@ -71,6 +76,8 @@ class Application(tornado.web.Application):
         handlers = [
             (r"/sleep", SleepHandler),
             (r"/file_upload", UploadFileHandler),
+            (r"/ws_index", SleepIndexHandler),
+            (r"/ws_sleep", SleepWebSocketHandler),
         ]
         settings = {
             'template_path': 'templates',

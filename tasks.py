@@ -4,11 +4,18 @@
 from celery import Celery
 import time
 import os
-from record_redis import redis_client
+
+UPLOAD_PATH = os.path.join(os.path.dirname(__file__), 'files')  # 文件的暂存路径
+
+if not os.path.exists(UPLOAD_PATH):
+    os.mkdir(UPLOAD_PATH)
 
 celery = Celery("tasks", broker="amqp://guest:guest@localhost:5672")
 celery.conf.CELERY_RESULT_BACKEND = "amqp"
 celery.conf.CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml']
+
+
+CHUNK_SIZE = 5 * 1024 * 1024
 
 @celery.task
 def sleep(seconds):
@@ -16,15 +23,15 @@ def sleep(seconds):
     return seconds
 
 @celery.task
-def upload_file(filepath, data):
+def upload_file(filename, data):
     ret = '0'
+    filepath = os.path.join(UPLOAD_PATH, filename)
     try:
         with open(filepath, 'wb') as up:
             try:
                 up.write(data)
             except Exception, e:
                 print e.message
-                redis_client.set(filepath, 'error')
                 ret = '105'
             finally:
                 up.close()
@@ -35,40 +42,21 @@ def upload_file(filepath, data):
         return ret
 
 @celery.task
-def upload_file_chunk(filepath, chunk, idx, sum):
+def upload_file_chunk(filename, chunk, idx, chunk_sum):
         ret = '0'
-        is_exe = False
-        if idx is 0:
-            w_mode = 'wb'
-        else:
-            w_mode = 'ab'
-        # 为了避免exe文件上传错误的BUG,去除exe文件后缀
-        if filepath[-4:] == '.exe':
-            is_exe = True
-            filepath = filepath[:-4]
-        # 如果分片顺序错误，阻塞当前worker
-        while True:
-            pre_idx = redis_client.get(filepath)
-            # 顺序正确时解除阻塞
-            if pre_idx is None:
-                if idx == 0:
-                    break
-            elif pre_idx == 'error':
-                ret = '105'
-                if idx == sum - 1:
-                    print 'upload %s fail' % filepath
-                    redis_client.delete(filepath)
-                return ret
-            else:
-                if int(pre_idx) == idx - 1:
-                    break
+        file_path = os.path.join(UPLOAD_PATH, filename)
+        is_exist = os.path.exists(file_path)
+        w_mode = "rb+"
+        if not is_exist:
+            w_mode = "wb"
         try:
-            with open(filepath, w_mode) as up:
+            with open(file_path, w_mode) as up:
                 try:
+                    w_idx = CHUNK_SIZE * idx
+                    up.seek(w_idx)
                     up.write(chunk)
                 except Exception, e:
                     print e.message
-                    redis_client.set(filepath, 'error')
                     ret = '105'
                 finally:
                     up.close()
@@ -76,17 +64,7 @@ def upload_file_chunk(filepath, chunk, idx, sum):
             print e.message
             ret = '102'
         finally:
-            print "write %d : chunk size is %d" % (idx, len(chunk))
-            if idx == sum - 1:
-                print 'upload file to %s accomplish' % filepath
-                if is_exe:
-                    exe_name = filepath+'.exe'
-                    if os.path.exists(exe_name):
-                        os.remove(exe_name)
-                    os.rename(filepath, exe_name)
-                redis_client.delete(filepath)
-            else:
-                redis_client.set(filepath, idx)
+            print "upload %s chunk idx %s" % (filename, idx)
             return ret
 
 
